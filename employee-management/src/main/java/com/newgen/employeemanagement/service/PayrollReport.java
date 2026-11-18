@@ -3,11 +3,13 @@ package com.newgen.employeemanagement.service;
 import com.newgen.employeemanagement.model.Department;
 import com.newgen.employeemanagement.model.Employee;
 import com.newgen.employeemanagement.model.Payslip;
+import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
+@Component
 public class PayrollReport {
 
     private static final Comparator<Payslip> HIGHEST_PAY_FIRST =
@@ -83,5 +85,8 @@ public class PayrollReport {
         return Collections.unmodifiableMap(parts);
     }
 
+    public List<Payslip> getPayslips() {
+        return Collections.unmodifiableList(payslips);
+    }
 
 }

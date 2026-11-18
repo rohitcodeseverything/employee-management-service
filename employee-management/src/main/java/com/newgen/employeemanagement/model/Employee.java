@@ -1,5 +1,7 @@
 package com.newgen.employeemanagement.model;
 
+import com.fasterxml.jackson.annotation.JsonSubTypes;
+import com.fasterxml.jackson.annotation.JsonTypeInfo;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Data;
@@ -11,6 +13,13 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.TreeSet;
 
+// Lets Jackson pick the concrete subclass from a "type" field in the JSON body.
+@JsonTypeInfo(use = JsonTypeInfo.Id.NAME, include = JsonTypeInfo.As.PROPERTY, property = "type")
+@JsonSubTypes({
+        @JsonSubTypes.Type(value = Developer.class, name = "DEVELOPER"),
+        @JsonSubTypes.Type(value = Manager.class, name = "MANAGER"),
+        @JsonSubTypes.Type(value = Intern.class, name = "INTERN")
+})
 @Data
 @NoArgsConstructor
 @AllArgsConstructor

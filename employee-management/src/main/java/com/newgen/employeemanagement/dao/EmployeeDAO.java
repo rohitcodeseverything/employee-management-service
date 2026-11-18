@@ -10,7 +10,6 @@ import java.util.List;
 @Repository
 public interface EmployeeDAO extends JpaRepository<Employee, Integer> {
 
-    Employee findById(int id);
     List<Employee> findByDepartment(Department department);
 
 }

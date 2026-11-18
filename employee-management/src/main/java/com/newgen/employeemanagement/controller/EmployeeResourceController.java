@@ -1,12 +1,15 @@
 package com.newgen.employeemanagement.controller;
 
 import com.newgen.employeemanagement.dao.EmployeeDAO;
+import com.newgen.employeemanagement.model.Department;
 import com.newgen.employeemanagement.model.Employee;
+import com.newgen.employeemanagement.model.Payslip;
 import com.newgen.employeemanagement.service.EmployeeService;
 import com.newgen.employeemanagement.service.PayrollService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -29,14 +32,17 @@ public class EmployeeResourceController {
     private final PayrollService payrollService;
     private final Comparator<Employee> defaultOrder;
     private final Comparator<Employee> nameOrder;
-    private final Comparator<Employee> payOrder;
+    private final Comparator<Employee> byPayHighestFirst;
 
-    public EmployeeResourceController(EmployeeDAO employeeDAO, PayrollService payrollService, Comparator<Employee> defaultOrder, Comparator<Employee> nameOrder, Comparator<Employee> payOrder) {
+    public EmployeeResourceController(EmployeeDAO employeeDAO, PayrollService payrollService,
+                                      Comparator<Employee> defaultOrder,
+                                      Comparator<Employee> nameOrder,
+                                      @Qualifier("byPayHighestFirst") Comparator<Employee> byPayHighestFirst) {
         this.employeeDAO = employeeDAO;
         this.payrollService = payrollService;
         this.defaultOrder = defaultOrder;
         this.nameOrder = nameOrder;
-        this.payOrder = payOrder;
+        this.byPayHighestFirst = byPayHighestFirst;
     }
 
     @GetMapping
@@ -47,6 +53,73 @@ public class EmployeeResourceController {
                         HttpStatus.OK
                 );
     }
+
+    @GetMapping("/all")
+    public ResponseEntity<List<Employee>> getAllEmployees() {
+
+        return new ResponseEntity<>(
+                employeeDAO.findAll()
+                .stream()
+                .sorted(byPayHighestFirst).toList(),
+                HttpStatus.OK
+        );
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<Employee> getEmployee(@PathVariable Integer id) {
+
+       var optEmployee =  employeeDAO.findById(id);
+
+       return optEmployee
+               .map(ResponseEntity::ok)
+               .orElseGet(() -> ResponseEntity.notFound().build());
+    }
+
+    @GetMapping("/byDepartment/{department}")
+    public ResponseEntity<List<Employee>> getEmployeesByDepartment(@PathVariable String department) {
+
+        var dep = Department.valueOf(department);
+
+        return  new ResponseEntity<>(
+        employeeDAO.findByDepartment(dep),
+                HttpStatus.OK
+        );
+
+    }
+
+    @PostMapping
+    public ResponseEntity<Employee> addEmployee(@RequestBody Employee employee) {
+         var savedEmployee = employeeDAO.save(employee);
+         return new ResponseEntity<>(savedEmployee, HttpStatus.CREATED);
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity deleteEmployee(@PathVariable Integer id) {
+        log.info("Delete employee with id={}", id);
+        employeeDAO.deleteById(id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @GetMapping("/payroll")
+    public ResponseEntity<String> getPayrolls() {
+
+        return new ResponseEntity<>(
+                payrollService.summary(),
+                HttpStatus.OK
+        );
+
+    }
+
+    @GetMapping("/payslips")
+    public ResponseEntity<List<Payslip>> getPayslips() {
+
+        return new ResponseEntity<>(
+                payrollService.getPayslips(),
+                HttpStatus.OK
+        );
+
+    }
+
 
     private static String names(List<Employee> employees) {
         if (employees.isEmpty()) {

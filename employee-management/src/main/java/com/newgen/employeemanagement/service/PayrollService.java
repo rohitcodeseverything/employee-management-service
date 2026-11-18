@@ -1,11 +1,13 @@
 package com.newgen.employeemanagement.service;
 
 import com.newgen.employeemanagement.dao.EmployeeDAO;
+import com.newgen.employeemanagement.model.Payslip;
 import jakarta.annotation.PostConstruct;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
@@ -14,12 +16,14 @@ public class PayrollService {
 
 
     private final EmployeeDAO employeeDAO;
+    private final PayrollReport payrollReport;
 
     @Value("${ems.payroll.top-earners}")
     private int topEarners;
 
-    public PayrollService(EmployeeDAO employeeDAO) {
+    public PayrollService(EmployeeDAO employeeDAO, PayrollReport payrollReport) {
         this.employeeDAO = employeeDAO;
+        this.payrollReport = payrollReport;
     }
 
     @PostConstruct
@@ -42,6 +46,8 @@ public class PayrollService {
                 best.isEmpty() ? "(nobody)" : best);
     }
 
-
+    public List<Payslip> getPayslips() {
+        return payrollReport.getPayslips();
+    }
 
 }
