@@ -1,24 +1,19 @@
 package com.newgen.employeemanagement.controller;
 
-import com.newgen.employeemanagement.dao.EmployeeDAO;
-import com.newgen.employeemanagement.model.Department;
+import com.newgen.employeemanagement.dao.EmployeeRepository;
+import com.newgen.employeemanagement.exception.EmployeeBadRequestException;
+import com.newgen.employeemanagement.exception.EmployeeNotFoundException;
 import com.newgen.employeemanagement.model.Employee;
-import com.newgen.employeemanagement.model.Payslip;
-import com.newgen.employeemanagement.service.EmployeeService;
-import com.newgen.employeemanagement.service.PayrollService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
-import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import tools.jackson.databind.json.JsonMapper;
 
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Optional;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -27,114 +22,79 @@ public class EmployeeResourceController {
 
     private static final Logger log = LoggerFactory.getLogger(EmployeeResourceController.class);
 
+    private final EmployeeRepository employeeService;
+    private final JsonMapper jsonMapper;
 
-    private final EmployeeDAO employeeDAO;
-    private final PayrollService payrollService;
-    private final Comparator<Employee> defaultOrder;
-    private final Comparator<Employee> nameOrder;
-    private final Comparator<Employee> byPayHighestFirst;
-
-    public EmployeeResourceController(EmployeeDAO employeeDAO, PayrollService payrollService,
-                                      Comparator<Employee> defaultOrder,
-                                      Comparator<Employee> nameOrder,
-                                      @Qualifier("byPayHighestFirst") Comparator<Employee> byPayHighestFirst) {
-        this.employeeDAO = employeeDAO;
-        this.payrollService = payrollService;
-        this.defaultOrder = defaultOrder;
-        this.nameOrder = nameOrder;
-        this.byPayHighestFirst = byPayHighestFirst;
+    public EmployeeResourceController(EmployeeRepository employeeService, JsonMapper jsonMapper) {
+        this.employeeService = employeeService;
+        this.jsonMapper = jsonMapper;
     }
 
     @GetMapping
-    public ResponseEntity<String> getEmployees() {
+    public ResponseEntity<List<Employee>> getEmployees() {
         return
                 new ResponseEntity<>(
-                        names(sorted(defaultOrder)),
+                        employeeService.findAll(),
                         HttpStatus.OK
                 );
-    }
-
-    @GetMapping("/all")
-    public ResponseEntity<List<Employee>> getAllEmployees() {
-
-        return new ResponseEntity<>(
-                employeeDAO.findAll()
-                .stream()
-                .sorted(byPayHighestFirst).toList(),
-                HttpStatus.OK
-        );
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<Employee> getEmployee(@PathVariable Integer id) {
 
-       var optEmployee =  employeeDAO.findById(id);
+       var optEmployee =  employeeService.findById(id).orElse(null);
 
-       return optEmployee
-               .map(ResponseEntity::ok)
-               .orElseGet(() -> ResponseEntity.notFound().build());
+       if(optEmployee == null) {
+           throw new EmployeeNotFoundException("Employee id not found: " + id);
+       }
+       return new ResponseEntity<>(optEmployee, HttpStatus.OK);
     }
 
-    @GetMapping("/byDepartment/{department}")
-    public ResponseEntity<List<Employee>> getEmployeesByDepartment(@PathVariable String department) {
-
-        var dep = Department.valueOf(department);
-
-        return  new ResponseEntity<>(
-        employeeDAO.findByDepartment(dep),
-                HttpStatus.OK
-        );
-
-    }
 
     @PostMapping
     public ResponseEntity<Employee> addEmployee(@RequestBody Employee employee) {
-         var savedEmployee = employeeDAO.save(employee);
+         var savedEmployee = employeeService.save(employee);
          return new ResponseEntity<>(savedEmployee, HttpStatus.CREATED);
     }
+
+    @PutMapping
+    public ResponseEntity<Employee> updateEmployee(@RequestBody Employee employee) {
+        var existingEmployee = employeeService.findById(employee.getId());
+        if (existingEmployee == null) {
+            throw new EmployeeNotFoundException("Employee id not found - " + employee.getId());
+        }
+        return new ResponseEntity<>(employeeService.save(employee), HttpStatus.OK);
+    }
+
+    @PatchMapping("/{employeeId}")
+    public ResponseEntity<Employee> patchEmployee(@PathVariable Integer employeeId,
+                                                  @RequestBody Map<String, Object> patchPayload) {
+
+       Employee employee =  employeeService.findById(employeeId).orElse(null);
+       if(employee == null) {
+           throw new EmployeeNotFoundException("Employee id not found - " + employeeId);
+       }
+
+       if(patchPayload.containsKey("id")) {
+            throw new EmployeeBadRequestException("id is not allowed in patch body - " + patchPayload.get("id"));
+       }
+
+       Employee patched = jsonMapper.updateValue(employee,  patchPayload);
+       return new ResponseEntity<>(employeeService.save(patched), HttpStatus.OK);
+    }
+
 
     @DeleteMapping("/{id}")
     public ResponseEntity deleteEmployee(@PathVariable Integer id) {
         log.info("Delete employee with id={}", id);
-        employeeDAO.deleteById(id);
+        employeeService.deleteById(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-    @GetMapping("/payroll")
-    public ResponseEntity<String> getPayrolls() {
-
-        return new ResponseEntity<>(
-                payrollService.summary(),
-                HttpStatus.OK
-        );
-
-    }
-
-    @GetMapping("/payslips")
-    public ResponseEntity<List<Payslip>> getPayslips() {
-
-        return new ResponseEntity<>(
-                payrollService.getPayslips(),
-                HttpStatus.OK
-        );
-
-    }
 
 
-    private static String names(List<Employee> employees) {
-        if (employees.isEmpty()) {
-            return "(none)";
-        }
-        return employees.stream()
-                .map(Employee::getName)
-                .collect(Collectors.joining(", "));
-    }
 
-    private List<Employee> sorted(Comparator<Employee> order) {
-        return employeeDAO.findAll().stream()
-                .sorted(order)
-                .collect(Collectors.toList());
-    }
+
 
 
 

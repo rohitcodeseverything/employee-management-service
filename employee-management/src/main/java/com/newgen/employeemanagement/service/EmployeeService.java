@@ -1,46 +1,25 @@
 package com.newgen.employeemanagement.service;
 
-import com.newgen.employeemanagement.dao.EmployeeDAO;
 import com.newgen.employeemanagement.model.Employee;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.data.domain.Example;
-import org.springframework.data.domain.Page;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.repository.query.FluentQuery;
-import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
-import java.util.function.Function;
 
-@Service
-public class EmployeeService {
+public interface EmployeeService {
 
-    private static final Logger log = LoggerFactory.getLogger(EmployeeService.class);
+    // Every employee, in id order.
+    List<Employee> findAll();
 
-    @Autowired
-    private EmployeeDAO employeeDAO;
+    // The employee with that id, or null when there is none.
+    Employee findById(Integer id);
 
+    // Adds the employee when its id is 0 and updates the row with that id
+    // otherwise. The answer is the saved employee, with its id.
+    Employee save(Employee employee);
 
-    public Employee save(Employee employee) {
-        return employeeDAO.save(employee);
-    }
+    void deleteById(Integer id);
 
-    public List<Employee> findAll() {
-        return  employeeDAO.findAll();
-    }
-
-   public void update(Employee employee) {
-        var updatedEmployee = employeeDAO.save(employee);
-        log.info("Updated employee with id:{}",updatedEmployee.getId());
-    }
-
-    public void delete(Integer id) {
-        employeeDAO.deleteById(id);
-        log.info("Deleted employee with id:{}",id);
-    }
+    // Deletes every employee. Nothing in the REST API asks for it; the
+    // start-up loader does, to begin from an empty table.
+    void deleteAll();
 
 }

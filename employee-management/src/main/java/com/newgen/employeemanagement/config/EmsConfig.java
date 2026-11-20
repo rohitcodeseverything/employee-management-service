@@ -1,17 +1,14 @@
 package com.newgen.employeemanagement.config;
 
 
-import com.newgen.employeemanagement.dao.EmployeeDAO;
+import com.newgen.employeemanagement.dao.EmployeeRepository;
 import com.newgen.employeemanagement.model.Employee;
 import com.newgen.employeemanagement.model.Payable;
-import org.apache.logging.log4j.util.PropertySource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Configurable;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Primary;
 
-import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
 
@@ -19,7 +16,7 @@ import java.util.Comparator;
 public class EmsConfig {
 
     @Autowired
-    private EmployeeDAO employeeDAO;
+    private EmployeeRepository employeeRepository;
 
     @Bean
     @Primary
@@ -39,7 +36,7 @@ public class EmsConfig {
 
     @Bean
     public Collection<? extends Employee> employees() {
-        return employeeDAO.findAll();
+        return employeeRepository.findAll();
     }
 
 }

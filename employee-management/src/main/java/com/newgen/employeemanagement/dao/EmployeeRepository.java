@@ -8,7 +8,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface EmployeeDAO extends JpaRepository<Employee, Integer> {
+public interface EmployeeRepository extends JpaRepository<Employee, Integer> {
 
     List<Employee> findByDepartment(Department department);
 
